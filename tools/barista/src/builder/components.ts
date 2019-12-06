@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-import { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readdirSync,
+  promises as fs,
+} from 'fs';
 import { basename, dirname, extname, join } from 'path';
 
 import {
@@ -33,6 +39,7 @@ import {
   uxSlotTransformer,
   headingIdTransformer,
   internalLinksTransformer,
+  exampleInlineSourcesTransformerFactory,
 } from '../transform';
 
 import { slugify } from '../utils/slugify';
@@ -40,6 +47,12 @@ import { slugify } from '../utils/slugify';
 const PROJECT_ROOT = join(__dirname, '../../../');
 const LIB_ROOT = join(__dirname, '../../../', 'components');
 const DOCUMENTATION_ROOT = join(__dirname, '../../../', 'documentation');
+const EXAMPLES_METADATA = join(
+  __dirname,
+  '../../../',
+  'dist',
+  'examples-metadata.json',
+);
 
 const TRANSFORMERS: BaPageTransformer[] = [
   componentTagsTransformer,
@@ -50,12 +63,33 @@ const TRANSFORMERS: BaPageTransformer[] = [
   internalLinksTransformer,
 ];
 
+/**
+ * Creates the exampleInlineSourcesTransformer by loading the example
+ * metadata-json and calling the factory with it.
+ */
+async function createExampleInlineSourcesTransformer(): Promise<
+  BaPageTransformer
+> {
+  if (!existsSync(EXAMPLES_METADATA)) {
+    throw new Error(
+      '"examples-metadata.json" not found. Make sure to run "examples-tools" first.',
+    );
+  }
+  const examplesMetadata = (await fs.readFile(EXAMPLES_METADATA, {
+    encoding: 'utf8',
+  })).toString();
+
+  return exampleInlineSourcesTransformerFactory(JSON.parse(examplesMetadata));
+}
+
+/** Returns all markdown files of a given path. */
 function getMarkdownFilesByPath(rootPath: string): string[] {
   return readdirSync(rootPath)
     .filter(name => extname(name) === '.md')
     .map(name => join(rootPath, name));
 }
 
+/** Applies defaults to a metadata object */
 function setMetadataDefaults(baristaMetadata: any): BaSinglePageMeta {
   const metadataWithDefaults = {
     title: baristaMetadata.title,
@@ -77,7 +111,11 @@ function setMetadataDefaults(baristaMetadata: any): BaSinglePageMeta {
   return metadataWithDefaults;
 }
 
-function getPaths(path: string): string[] {
+/**
+ * Get all paths of directors that contain a README.md and
+ * a barista.json metadata file recursively.
+ */
+function getBaristaContentDirectoryPaths(path: string): string[] {
   let fileList: string[] = [];
 
   // Only grab those dirs that include a README.md and a barista.json
@@ -93,7 +131,7 @@ function getPaths(path: string): string[] {
   for (const file of files) {
     const filePath = join(path, file);
     if (lstatSync(filePath).isDirectory()) {
-      fileList.push(...getPaths(filePath));
+      fileList.push(...getBaristaContentDirectoryPaths(filePath));
     }
   }
 
@@ -108,16 +146,18 @@ export const componentsBuilder: BaPageBuilder = async (
 
   if (componentsPaths) {
     for (const path of componentsPaths) {
-      readmeDirs.push(...getPaths(path));
+      readmeDirs.push(...getBaristaContentDirectoryPaths(path));
     }
   } else {
-    readmeDirs = getPaths(LIB_ROOT);
+    readmeDirs = getBaristaContentDirectoryPaths(LIB_ROOT);
   }
 
   const documentationMdFiles = [
     ...getMarkdownFilesByPath(DOCUMENTATION_ROOT),
     ...getMarkdownFilesByPath(PROJECT_ROOT),
   ];
+
+  const exampleInlineSourcesTransformer = await createExampleInlineSourcesTransformer();
 
   const transformed: BaPageBuildResult[] = [];
 
@@ -134,7 +174,7 @@ export const componentsBuilder: BaPageBuilder = async (
           ...setMetadataDefaults(baristaMetadata),
           content: readFileSync(join(dir, 'README.md')).toString(),
         },
-        TRANSFORMERS,
+        [...TRANSFORMERS, exampleInlineSourcesTransformer],
       );
       transformed.push({ pageContent, relativeOutFile });
     }
