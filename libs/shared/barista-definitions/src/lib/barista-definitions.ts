@@ -198,3 +198,13 @@ export interface BaOverviewPageSectionItem {
   description: string;
   order?: number;
 }
+
+export interface BaNav {
+  navItems: BaNavItem[];
+}
+
+export interface BaNavItem {
+  label: string;
+  url: string;
+  order?: number;
+}

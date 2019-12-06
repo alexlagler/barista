@@ -21,6 +21,8 @@ import {
   BaOverviewPage,
   BaOverviewPageSectionItem,
   BaSinglePageMeta,
+  BaNav,
+  BaNavItem,
 } from '@dynatrace/barista-components/barista-definitions';
 
 const DIST_DIR = join(__dirname, '../../', 'apps', 'barista', 'data');
@@ -40,6 +42,13 @@ const highlightedItems = [
   'Common UI styles',
   'Theming',
 ];
+
+const navigationOrder = new Map([
+  ['Brand', 1],
+  ['Resources', 2],
+  ['Components', 3],
+  ['Patterns', 4],
+]);
 
 function getOverviewSectionItem(
   filecontent: BaSinglePageMeta,
@@ -83,13 +92,24 @@ export const overviewBuilder = async () => {
     isDirectory(dirPath),
   );
 
+  let nav: BaNav = {
+    navItems: [],
+  };
+
   const pages = allDirectories.map(async directory => {
     const path = join(DIST_DIR, directory);
 
+    const capitalizedTitle =
+      directory.charAt(0).toUpperCase() + directory.slice(1);
+
+    nav.navItems.push({
+      label: capitalizedTitle,
+      url: `/${directory}/`,
+      order: navigationOrder.get(capitalizedTitle),
+    });
+
     if (directory !== 'components') {
       const files = readdirSync(path);
-      const capitalizedTitle =
-        directory.charAt(0).toUpperCase() + directory.slice(1);
       let overviewPage: BaOverviewPage = {
         title: capitalizedTitle,
         id: directory,
@@ -122,7 +142,7 @@ export const overviewBuilder = async () => {
           encoding: 'utf8',
         },
       );
-    } else if (directory === 'components') {
+    } else {
       const files = readdirSync(path);
 
       let componentOverview: BaOverviewPage = {
@@ -207,5 +227,26 @@ export const overviewBuilder = async () => {
       );
     }
   });
+
+  nav.navItems = nav.navItems.sort(function(
+    a: BaNavItem,
+    b: BaNavItem,
+  ): number {
+    if (a.order && b.order) {
+      return a.order - b.order;
+    }
+
+    if (b.order) {
+      return 1;
+    }
+
+    return -1;
+  });
+
+  fs.writeFile(join(DIST_DIR, 'nav.json'), JSON.stringify(nav, null, 2), {
+    flag: 'w', // "w" -> Create file if it does not exist
+    encoding: 'utf8',
+  });
+
   return Promise.all(pages);
 };
