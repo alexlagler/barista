@@ -23,7 +23,7 @@ import {
   BaPageTransformer,
 } from '@dynatrace/barista-components/barista-definitions';
 
-import { isPublicBuild } from './utils/isPublicBuild';
+import { isPublicBuild } from './utils/is-public-build';
 const INTERNAL_LINKS = process.env.INTERNAL_LINKS;
 
 const markdown = new markdownIt({
