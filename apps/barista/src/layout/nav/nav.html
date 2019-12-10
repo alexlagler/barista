@@ -18,7 +18,7 @@
       <li
         class="ba-nav-item"
         *ngFor="let item of (_navData$ | async)?.navItems"
-        [class.ba-nav-item-active]="(_pathRoot | async) === _getUrlRootPath(item.url)"
+        [class.ba-nav-item-active]="(_pathRoot$ | async) === _getUrlRootPath(item.url)"
       >
         <a class="ba-nav-link" [href]="item.url">{{ item.label }}</a>
       </li>

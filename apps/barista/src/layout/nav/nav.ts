@@ -36,7 +36,7 @@ export class BaNav {
   _navData$: Observable<any>;
 
   /** @internal the current root url */
-  _pathRoot = this._locationService.currentPath$.pipe(
+  _pathRoot$ = this._locationService.currentPath$.pipe(
     map(path => this._getUrlRootPath(path)),
     distinctUntilChanged(),
     shareReplay(),

@@ -43,12 +43,7 @@ const highlightedItems = [
   'Theming',
 ];
 
-const navigationOrder = new Map([
-  ['Brand', 1],
-  ['Resources', 2],
-  ['Components', 3],
-  ['Patterns', 4],
-]);
+const navigationOrder = ['Brand', 'Resources', 'Components', 'Patterns'];
 
 function getOverviewSectionItem(
   filecontent: BaSinglePageMeta,
@@ -105,7 +100,7 @@ export const overviewBuilder = async () => {
     nav.navItems.push({
       label: capitalizedTitle,
       url: `/${directory}/`,
-      order: navigationOrder.get(capitalizedTitle),
+      order: navigationOrder.indexOf(capitalizedTitle) + 1,
     });
 
     if (directory !== 'components') {
@@ -243,7 +238,7 @@ export const overviewBuilder = async () => {
     return -1;
   });
 
-  fs.writeFile(join(DIST_DIR, 'nav.json'), JSON.stringify(nav, null, 2), {
+  await fs.writeFile(join(DIST_DIR, 'nav.json'), JSON.stringify(nav, null, 2), {
     flag: 'w', // "w" -> Create file if it does not exist
     encoding: 'utf8',
   });
