@@ -32,14 +32,15 @@ export class BaSinglePage implements BaPage, AfterViewInit {
   }
   set contents(value: BaSinglePageContent) {
     this._contents = value;
-    this._recentlyOrderedService.saveToLocalStorage(this.contents);
+    if (this.contents && this.contents.layout !== 'icon') {
+      this._recentlyOrderedService.saveToLocalStorage(this.contents);
+    }
   }
   private _contents: BaSinglePageContent;
 
   constructor(private _recentlyOrderedService: BaRecentlyOrderedService) {}
 
   ngAfterViewInit(): void {
-    this._recentlyOrderedService.saveToLocalStorage(this.contents);
     this._checkURL();
 
     const allTables = Array.prototype.slice.call(
